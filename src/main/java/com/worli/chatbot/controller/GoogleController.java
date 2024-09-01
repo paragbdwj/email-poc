@@ -1,7 +1,9 @@
 package com.worli.chatbot.controller;
 
 import com.worli.chatbot.request.GoogleAuthRequest;
+import com.worli.chatbot.request.ReceiveEmailRequest;
 import com.worli.chatbot.response.GoogleAuthResponse;
+import com.worli.chatbot.response.ReceiveEmailResponse;
 import com.worli.chatbot.service.GoogleService;
 import com.worli.chatbot.utils.LogUtils;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import static com.worli.chatbot.constants.APIConstants.GET_GOOGLE_AUTH_RESPONSE;
+import static com.worli.chatbot.constants.APIConstants.GOOGLE_RECEIVE_EMAIL_WEBHOOK;
 
 @Slf4j
 @RestController
@@ -36,6 +39,24 @@ public class GoogleController {
         } catch (Exception e) {
             httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
             LogUtils.getExceptionLog(GET_GOOGLE_AUTH_RESPONSE, request, e);
+        }
+        return ResponseEntity.status(httpStatus.value()).body(response);
+    }
+
+    @PostMapping(value = GOOGLE_RECEIVE_EMAIL_WEBHOOK,
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ReceiveEmailResponse> receiveEmails(@RequestBody ReceiveEmailRequest request) {
+        ReceiveEmailResponse response = ReceiveEmailResponse.builder()
+                .success(false)
+                .build();
+        HttpStatus httpStatus = HttpStatus.OK;
+        try {
+            LogUtils.getRequestLog(GOOGLE_RECEIVE_EMAIL_WEBHOOK, request);
+            LogUtils.getResponseLog(GOOGLE_RECEIVE_EMAIL_WEBHOOK, request);
+        } catch (Exception e) {
+            httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+            LogUtils.getExceptionLog(GOOGLE_RECEIVE_EMAIL_WEBHOOK, request, e);
         }
         return ResponseEntity.status(httpStatus.value()).body(response);
     }
