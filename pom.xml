@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.worli</groupId>
 	<artifactId>chatbot</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.2-SNAPSHOT</version>
 	<name>chatbot</name>
 	<description>Backend Service for Chat bot</description>
 	<properties>
