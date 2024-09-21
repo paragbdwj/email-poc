@@ -5,7 +5,7 @@ import com.worli.chatbot.constants.ApplicationProperties;
 import com.worli.chatbot.model.MessageRecievedPojo;
 import com.worli.chatbot.service.ChatAggregatorService;
 import com.worli.chatbot.service.KafkaProducerService;
-import jakarta.annotation.PostConstruct;
+import com.worli.chatbot.utils.SerializationUtils;
 import jakarta.mail.*;
 import jakarta.mail.event.MessageCountAdapter;
 import jakarta.mail.event.MessageCountEvent;
@@ -15,10 +15,11 @@ import java.io.IOException;
 import java.util.Properties;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.eclipse.angus.mail.imap.IMAPFolder;
 import lombok.RequiredArgsConstructor;
+import org.eclipse.angus.mail.imap.IMAPFolder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 // TODO : Need to make it scalable (Possibly using google-project)
@@ -32,7 +33,7 @@ public class EmailReceiverService {
     private final EmailSenderService emailSenderService;
     private final ApplicationProperties applicationProperties;
     private final KafkaProducerService kafkaProducerService;
-    @PostConstruct
+
     public void startListeningForEmails() {
         if(!applicationProperties.isReceiverActivated()) {
             return;
@@ -51,13 +52,12 @@ public class EmailReceiverService {
             inbox.addMessageCountListener(new MessageCountAdapter() {
                 @Override
                 public void messagesAdded(MessageCountEvent event) {
-                    log.info("inside ducking listener");
                     Message[] messages = event.getMessages();
                     for (Message message : messages) {
                         try {
                             if (message instanceof MimeMessage) {
                                 MimeMessage mimeMessage = (MimeMessage) message;
-                                kafkaProducerService.sendMessage(applicationProperties.getTopicEmailReceiver(), objectMapper.writeValueAsString(MessageRecievedPojo.builder()
+                                kafkaProducerService.sendMessage(applicationProperties.getTopicEmailReceiver(), SerializationUtils.serializeMessageReceivedPojo(MessageRecievedPojo.builder()
                                         .message(getEmailContent(mimeMessage))
                                         .subject(mimeMessage.getSubject())
                                         .email(mimeMessage.getFrom()[0].toString())
@@ -103,12 +103,26 @@ public class EmailReceiverService {
                 BodyPart bodyPart = multipart.getBodyPart(i);
                 String contentType = bodyPart.getContentType();
                 if (contentType.toLowerCase().startsWith("text/plain") || contentType.toLowerCase().contains("text/html")) {
-                    contentBuilder.append(bodyPart.getContent().toString());
+                    String partContent = bodyPart.getContent().toString();
+                    // Remove content starting from the first <div> tag
+                    int divIndex = partContent.indexOf("<div>");
+                    if (divIndex != -1) {
+                        partContent = partContent.substring(0, divIndex);
+                    }
+                    contentBuilder.append(partContent);
                 }
                 // handle other content types (e.g., attachments) here if needed
             }
         }
+        return removeHtmlAfterDiv(contentBuilder.toString());
+    }
 
-        return contentBuilder.toString();
+    private static String removeHtmlAfterDiv(String input) {
+        int divIndex = input.indexOf("<div");
+        if (divIndex != -1) {
+            // Return substring up to the start of <div>
+            return input.substring(0, divIndex).trim();
+        }
+        return input; // Return original string if <div> not found
     }
 }

@@ -92,7 +92,7 @@ public class GoogleController {
     //TODO: Remove below controller if not using
     @GetMapping("/test")
     public void f() {
-        kafkaProducerService.sendMessage("test-topic", "hey man");
+//        kafkaProducerService.sendMessage("test-topic", "hey man");
 //        databaseHelper.saveConversationalHistoryData(new MessageRecievedPojo(), "sorce", "opon");
 //        emailSenderService.sendEmail("paragbhardwaj5@gmail.com", "test_sub", "test_text", false);
     }
