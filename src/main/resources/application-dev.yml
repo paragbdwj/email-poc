@@ -1,1 +1,98 @@
-allowed-origins : "*"
+spring:
+  application:
+    name: ${SPRING_APPLICATION_NAME:worli-chattermouth}
+  data:
+    mongodb:
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DATABASE:worli}
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:paragbhardwajcs@gmail.com}
+    password: ${MAIL_PASSWORD:shcr vuqc kryw vhwc}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
+            required: ${MAIL_SMTP_STARTTLS_REQUIRED:true}
+          connectiontimeout: ${MAIL_SMTP_CONNECTION_TIMEOUT:5000}
+          timeout: ${MAIL_SMTP_TIMEOUT:5000}
+          writetimeout: ${MAIL_SMTP_WRITE_TIMEOUT:5000}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}  # Kafka broker address, defaults to localhost if not set
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:my-group-id}             # Consumer group id, defaults to 'my-group-id' if not set
+      auto-offset-reset: ${KAFKA_CONSUMER_AUTO_OFFSET_RESET:earliest}  # Start reading from the earliest, defaults to 'earliest'
+      key-deserializer: ${KAFKA_CONSUMER_KEY_DESERIALIZER:org.apache.kafka.common.serialization.StringDeserializer}
+      value-deserializer: ${KAFKA_CONSUMER_VALUE_DESERIALIZER:org.apache.kafka.common.serialization.StringDeserializer}
+    producer:
+      key-serializer: ${KAFKA_PRODUCER_KEY_SERIALIZER:org.apache.kafka.common.serialization.StringSerializer}
+      value-serializer: ${KAFKA_PRODUCER_VALUE_SERIALIZER:org.apache.kafka.common.serialization.StringSerializer}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+
+http:
+  pool-properties:
+    llm-conversational-pool-config:
+      maxTotal: ${LLM_CONVERSATIONAL_HTTP_POOL_MAX_TOTAL:100}
+      defaultMaxPerRoute: ${LLM_CONVERSATIONAL_HTTP_POOL_DEFAULT_MAX_PER_ROUTE:100}
+      connectionTimeout: ${LLM_CONVERSATIONAL_HTTP_POOL_CONNECTION_TIMEOUT:10000}
+      socketTimeout: ${LLM_CONVERSATIONAL_HTTP_POOL_SOCKET_TIMEOUT:10000}
+      requestTimeout: ${LLM_CONVERSATIONAL_HTTP_POOL_REQUEST_TIMEOUT:10000}
+    google-get-token-pool-config:
+      maxTotal: ${GOOGLE_GET_TOKEN_HTTP_POOL_MAX_TOTAL:100}
+      defaultMaxPerRoute: ${GOOGLE_GET_TOKEN_HTTP_POOL_DEFAULT_MAX_PER_ROUTE:100}
+      connectionTimeout: ${GOOGLE_GET_TOKEN_HTTP_POOL_CONNECTION_TIMEOUT:10000}
+      socketTimeout: ${GOOGLE_GET_TOKEN_HTTP_POOL_SOCKET_TIMEOUT:10000}
+      requestTimeout: ${GOOGLE_GET_TOKEN_HTTP_POOL_REQUEST_TIMEOUT:10000}
+    google-get-profile-data-pool-config:
+      maxTotal: ${GOOGLE_GET_PROFILE_HTTP_POOL_MAX_TOTAL:100}
+      defaultMaxPerRoute: ${GOOGLE_GET_PROFILE_HTTP_POOL_DEFAULT_MAX_PER_ROUTE:100}
+      connectionTimeout: ${GOOGLE_GET_PROFILE_HTTP_POOL_CONNECTION_TIMEOUT:10000}
+      socketTimeout: ${GOOGLE_GET_PROFILE_HTTP_POOL_SOCKET_TIMEOUT:10000}
+      requestTimeout: ${GOOGLE_GET_PROFILE_HTTP_POOL_REQUEST_TIMEOUT:10000}
+
+service:
+  config:
+    llm-conversational-config:
+      url: ${LLM_CONVERSATIONAL_SERVICE_URL:https://api.openai.com/v1/chat/completions}
+    google-get-token-config:
+      url: ${GOOGLE_GET_TOKEN_API_URL:https://oauth2.googleapis.com/token}
+    google-get-profile-config:
+      url: ${GOOGLE_GET_PROFILE_CONFIG_URL:https://www.googleapis.com/oauth2/v2/userinfo}
+
+allowed-origins: ${ALLOWED_ORIGINS:*}
+
+mail:
+  smtp:
+    user: paragbhardwajcs@gmail.com
+
+google:
+  client:
+    id: ${GOOGLE_CLIENT_ID}
+    secret: ${GOOGLE_CLIENT_SECRET}
+  redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/google/auth-callback}
+  project-id: ${GOOGLE_PROJECT_ID:coherent-ascent-436020-n2}
+  subscription-id: ${GOOGLE_GMAIL_SUBSCRIPTION_ID:gmail-subscription}
+
+openai:
+  authorization-value: ${OPENAI_AUTHORIZATION_VALUE}
+
+receiver-worli:
+  email: ${RECEIVER_WORLI_EMAIL:paragbhardwajcs@gmail.com}
+  email-password: ${RECEIVER_WORLI_PASSWORD}
+  activated: ${RECEIVER_WORLI_ACTIVATED}
+
+conversational-model:
+  prompt: "I have received an email from a user and I will provide chat history (if any) in the numbered list for the user along with the response given by you in the chronological order, and I need to extract specific information while classifying the intent.\nNOTE :- ONLY GIVE JSON BODY IN OUTPUT.\n\n### Email Received: %s \n\nChat history (If any): %s\n\n### Information to Extract:\n\n- **“from_email”**\n- **“to_email”** (cannot be Worli)\n- **“meeting_time”** (time for the new meeting to be scheduled, formatted as HH:MM)\n- **“cancel_meeting_date”** (This is the date of the meeting to be cancelled. Today’s date is the current date, time is the current time. Tomorrow is the next date from the current date, formatted as DD/MM/YYYY)\n- **“new_meeting_date”** (This is the date of the new meeting to be scheduled. Today’s date is the current date, time is the current time. Tomorrow is the next date from the current date, formatted as DD/MM/YYYY)\n- **“agenda”**\n- **“suggested_slots”** (These are the time slots the sender (from) person has suggested for the meeting)\n- **“deadline_date”** (Date by when the meeting should be scheduled, beyond which it should not be scheduled. Today’s date is the current date, time is the current time. Tomorrow is the next date from the current date, formatted as DD/MM/YYYY. This cannot be the same as the new_meeting_date unless specifically specified by the user.)\n- **“from_name”**\n- **“to_name”** (cannot be Worli)\n- **“intent”** (classification code)\n- **“from_phone”** (phone number of the sender (from))\n\n### Intent Classification:\n\n- **Schedule a meeting** (Code: 1)\n- **Cancel** (Code: 2)\n- **Reschedule a meeting** (Code: 3)\n- Irrelevant Intent (Code: 4)\n\nIf any values are not present, please indicate as \"null.\" Please provide the final response in JSON format.\n\n### Alternate Additions:\n\nIf the email address for the \"to\" user is not provided, please create an email to ask for the same. Add this to the JSON with the following keys:\n\n- **subject**: Subject of the email (null if is_followup is FALSE)\n- **body**: Body of the email (null if is_followup is FALSE)\n- **is_followup**: TRUE/FALSE (True if follow-up email is required, else FALSE) \n NOTE :- ONLY GIVE JSON BODY IN OUTPUT"
+
+
+kafka:
+  listener:
+    enabled:
+      email-receiver: ${EMAIL_RECEIVER_LISTENER_ENABLED}
