@@ -1,29 +1,25 @@
-package com.worli.chatbot.model;
+package com.worli.chatbot.mongo.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.worli.chatbot.model.GoogleResponseObject;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
+//TODO : think about deprecation of this database
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonInclude(Include.NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class GoogleResponseObject {
-    @Id
-    private String _id;
+@Document(collection = "user_google_data")
+public class UserGoogleData {
     private String ca;
-    private Xc xc;
-    private Wt wt;
-    private String googleId;
+    private GoogleResponseObject.Xc xc;
+    private GoogleResponseObject.Wt wt;
+    private String googleId;  // this should be unique
     private TokenObj tokenObj;
     private String tokenId;
     private String accessToken;
@@ -37,7 +33,7 @@ public class GoogleResponseObject {
         private String loginHint;
         private int expiresIn;
         private String idToken;
-        private SessionState sessionState;
+        private GoogleResponseObject.SessionState sessionState;
         private long firstIssuedAt;
         private long expiresAt;
         private String idpId;
@@ -45,7 +41,7 @@ public class GoogleResponseObject {
 
     @Data
     public static class SessionState {
-        private ExtraQueryParams extraQueryParams;
+        private GoogleResponseObject.ExtraQueryParams extraQueryParams;
     }
 
     @Data
@@ -63,7 +59,6 @@ public class GoogleResponseObject {
     }
 
     @Data
-    @JsonNaming(SnakeCaseStrategy.class)
     public static class TokenObj {
         private String tokenType;
         private String accessToken;
@@ -71,7 +66,7 @@ public class GoogleResponseObject {
         private String loginHint;
         private int expiresIn;
         private String idToken;
-        private SessionState sessionState;
+        private GoogleResponseObject.SessionState sessionState;
         private long firstIssuedAt;
         private long expiresAt;
         private String idpId;

@@ -14,7 +14,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleException(Exception ex) {
         log.error("got stack_trace : {}", ExceptionUtils.getStackTrace(ex));
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("hi");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error encountered at extreme outer layer");
     }
 }
 

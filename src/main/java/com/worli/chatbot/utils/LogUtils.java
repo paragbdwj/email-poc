@@ -22,4 +22,8 @@ public class LogUtils {
     public void getWrongCredentialsExceptionLog(String apiName, Object request, Exception e) {
         log.error("got wrong_credentials_exception in : {} for request : {} with stack_trace : {}", apiName, request, ExceptionUtils.getStackTrace(e));
     }
+
+    public void downstreamUnsuccsessfulResponse(String url, Object request, Object body) {
+        log.error("got downstream failure for url : {}, request : {} with body : {}", url, request, body);
+    }
 }

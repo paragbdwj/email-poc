@@ -1,5 +1,3 @@
 spring:
-  application:
-    name: worli
   profiles:
-    active: dev
+    active: ${SPRING_PROFILE_ACTIVE:dev}
