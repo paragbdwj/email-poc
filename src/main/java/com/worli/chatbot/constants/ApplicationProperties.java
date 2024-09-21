@@ -42,4 +42,9 @@ public class ApplicationProperties {
 
     @Value("${conversational-model.prompt}")
     private String conversationalModelPrompt;
+
+    //kafka related
+    @Value("${kafka.topic.email-receiver}")
+    private String topicEmailReceiver;
+
 }

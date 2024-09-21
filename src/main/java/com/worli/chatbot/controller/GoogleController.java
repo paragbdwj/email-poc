@@ -8,6 +8,7 @@ import com.worli.chatbot.response.GoogleAuthResponse;
 import com.worli.chatbot.response.GoogleOauthResponse;
 import com.worli.chatbot.response.ReceiveEmailResponse;
 import com.worli.chatbot.service.GoogleService;
+import com.worli.chatbot.service.KafkaProducerService;
 import com.worli.chatbot.service.email.EmailSenderService;
 import com.worli.chatbot.utils.LogUtils;
 import lombok.Data;
@@ -34,7 +35,7 @@ public class GoogleController {
     private final GoogleService googleService;
     private final EmailSenderService emailSenderService;
     private final DatabaseHelper databaseHelper;
-
+    private final KafkaProducerService kafkaProducerService;
     @PostMapping(value = GET_GOOGLE_AUTH_RESPONSE,
             produces = MediaType.APPLICATION_JSON_VALUE,
             consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -91,7 +92,8 @@ public class GoogleController {
     //TODO: Remove below controller if not using
     @GetMapping("/test")
     public void f() {
-        databaseHelper.saveConversationalHistoryData(new MessageRecievedPojo(), "sorce", "opon");
-        emailSenderService.sendEmail("paragbhardwaj5@gmail.com", "test_sub", "test_text", false);
+        kafkaProducerService.sendMessage("test-topic", "hey man");
+//        databaseHelper.saveConversationalHistoryData(new MessageRecievedPojo(), "sorce", "opon");
+//        emailSenderService.sendEmail("paragbhardwaj5@gmail.com", "test_sub", "test_text", false);
     }
 }

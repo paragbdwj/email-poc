@@ -19,8 +19,8 @@ import java.io.InputStream;
 @RequiredArgsConstructor
 @Slf4j
 public class PubSubSubscriber {
-    private final ApplicationProperties applicationProperties;
-    private final GoogleGmailService googleGmailService;
+//    private final ApplicationProperties applicationProperties;
+//    private final GoogleGmailService googleGmailService;
 
 //    @PostConstruct
 //    public void startSubscriber() {
@@ -68,40 +68,40 @@ public class PubSubSubscriber {
 //    }
 
 //    @PostConstruct
-    public void startSubscriber() {
-        try {
-            // Load the credentials from the resources folder
-            InputStream credentialsStream = getClass().getResourceAsStream("/coherent-ascent-436020-n2-1cd2d8f09e35.json");
-            GoogleCredentials credentials = GoogleCredentials.fromStream(credentialsStream);
-
-            // Create a subscription name
-            ProjectSubscriptionName subscriptionName = ProjectSubscriptionName.of(applicationProperties.getGoogleProjectId(), applicationProperties.getGoogleSubscriptionId());
-
-            // Create a message receiver
-            Subscriber subscriber = Subscriber.newBuilder(subscriptionName, (message, consumer) -> {
-                String receivedMessage = message.getData().toStringUtf8();
-                System.out.println("Received message: " + receivedMessage);
-
-                // Assuming receivedMessage contains the historyId
-                // historyId needs to be extracted
-
-                try {
-//                    googleGmailService.getEmailHistory("me", BigInteger.valueOf(1582156));
-                    googleGmailService.fetchRecentMessages("me");
-                } catch (Exception e) {
-                    log.error("caught exception in gmailService.getEmailHistory() with stacktrace : {}", ExceptionUtils.getStackTrace(e), e);
-                }
-                System.out.println("Received message: " + message.getData().toStringUtf8());
-                consumer.ack(); // Acknowledge the message
-            }).setCredentialsProvider(() -> credentials).build();
-
-            // Start the subscriber
-            subscriber.startAsync().awaitRunning();
-            System.out.println("Subscriber is listening for messages...");
-
-        } catch (IOException e) {
-            System.err.println("Failed to load credentials: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
+//    public void startSubscriber() {
+//        try {
+//            // Load the credentials from the resources folder
+//            InputStream credentialsStream = getClass().getResourceAsStream("/coherent-ascent-436020-n2-1cd2d8f09e35.json");
+//            GoogleCredentials credentials = GoogleCredentials.fromStream(credentialsStream);
+//
+//            // Create a subscription name
+//            ProjectSubscriptionName subscriptionName = ProjectSubscriptionName.of(applicationProperties.getGoogleProjectId(), applicationProperties.getGoogleSubscriptionId());
+//
+//            // Create a message receiver
+//            Subscriber subscriber = Subscriber.newBuilder(subscriptionName, (message, consumer) -> {
+//                String receivedMessage = message.getData().toStringUtf8();
+//                System.out.println("Received message: " + receivedMessage);
+//
+//                // Assuming receivedMessage contains the historyId
+//                // historyId needs to be extracted
+//
+//                try {
+////                    googleGmailService.getEmailHistory("me", BigInteger.valueOf(1582156));
+//                    googleGmailService.fetchRecentMessages("me");
+//                } catch (Exception e) {
+//                    log.error("caught exception in gmailService.getEmailHistory() with stacktrace : {}", ExceptionUtils.getStackTrace(e), e);
+//                }
+//                System.out.println("Received message: " + message.getData().toStringUtf8());
+//                consumer.ack(); // Acknowledge the message
+//            }).setCredentialsProvider(() -> credentials).build();
+//
+//            // Start the subscriber
+//            subscriber.startAsync().awaitRunning();
+//            System.out.println("Subscriber is listening for messages...");
+//
+//        } catch (IOException e) {
+//            System.err.println("Failed to load credentials: " + e.getMessage());
+//            e.printStackTrace();
+//        }
+//    }
 }

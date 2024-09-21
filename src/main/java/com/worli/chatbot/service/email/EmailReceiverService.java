@@ -4,6 +4,7 @@ package com.worli.chatbot.service.email;
 import com.worli.chatbot.constants.ApplicationProperties;
 import com.worli.chatbot.model.MessageRecievedPojo;
 import com.worli.chatbot.service.ChatAggregatorService;
+import com.worli.chatbot.service.KafkaProducerService;
 import jakarta.annotation.PostConstruct;
 import jakarta.mail.*;
 import jakarta.mail.event.MessageCountAdapter;
@@ -30,7 +31,7 @@ public class EmailReceiverService {
     private final ChatAggregatorService chatAggregatorService;
     private final EmailSenderService emailSenderService;
     private final ApplicationProperties applicationProperties;
-
+    private final KafkaProducerService kafkaProducerService;
     @PostConstruct
     public void startListeningForEmails() {
         if(!applicationProperties.isReceiverActivated()) {
@@ -56,11 +57,11 @@ public class EmailReceiverService {
                         try {
                             if (message instanceof MimeMessage) {
                                 MimeMessage mimeMessage = (MimeMessage) message;
-                                chatAggregatorService.processMessageReceived(MessageRecievedPojo.builder()
-                                                .message(getEmailContent(mimeMessage))
-                                                .subject(mimeMessage.getSubject())
-                                                .email(mimeMessage.getFrom()[0].toString())
-                                        .build());
+                                kafkaProducerService.sendMessage(applicationProperties.getTopicEmailReceiver(), objectMapper.writeValueAsString(MessageRecievedPojo.builder()
+                                        .message(getEmailContent(mimeMessage))
+                                        .subject(mimeMessage.getSubject())
+                                        .email(mimeMessage.getFrom()[0].toString())
+                                        .build()));
                             }
                         } catch (Exception e) {
                             log.error("getting error in messagesAdded with stack_trace : {}", ExceptionUtils.getStackTrace(e));

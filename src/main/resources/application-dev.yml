@@ -93,6 +93,8 @@ conversational-model:
 
 
 kafka:
+  topic:
+    email-receiver: ${TOPIC_NAME_EMAIL_RECEIVER:test-topic}
   listener:
     enabled:
       email-receiver: ${EMAIL_RECEIVER_LISTENER_ENABLED}

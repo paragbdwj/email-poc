@@ -1,17 +1,32 @@
 package com.worli.chatbot.service.listener;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.worli.chatbot.model.MessageRecievedPojo;
+import com.worli.chatbot.service.ChatAggregatorService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
+@Slf4j
 public class EmailReceiverListener {
+    private final ChatAggregatorService chatAggregatorService;
+    private final ObjectMapper objectMapper;
     @KafkaListener(
-            topics = "test-topic",
+            topics = "${kafka.topic.email-receiver}",
             groupId = "my-group",
             autoStartup = "#{T(java.lang.Boolean).parseBoolean('${kafka.listener.enabled.email-receiver}')}"  // Uses the property to enable/disable
     )
-    public void listen(ConsumerRecord<String, String> record) {
-        System.out.println("Received message: " + record.value());
+    public void emailReceiverListener(ConsumerRecord<String, String> record) {
+        log.info("In the function emailReceiverListener, received message : {}", record);
+        try {
+            MessageRecievedPojo messageRecievedPojo = objectMapper.readValue(record.value(), MessageRecievedPojo.class);
+            chatAggregatorService.processMessageReceived(messageRecievedPojo);
+        } catch (Exception e) {
+            log.info("Got exception in emailReceiverListener for record : {}", record);
+        }
     }
 }
