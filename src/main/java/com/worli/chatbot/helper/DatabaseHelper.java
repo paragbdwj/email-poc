@@ -101,16 +101,13 @@ public class DatabaseHelper {
 
     public ConversationalHistoryData saveConversationalHistoryData(MessageRecievedPojo messageRecievedPojo, String source, String openAiResponse) {
         try {
-            userGoogleTokenDataRepository.save(UserGoogleTokenData.builder()
-                            .googleId("test")
-                            .accessToken("tsterrr")
-                    .build());
             return conversationHistoryDataRepository.save(ConversationalHistoryData.builder()
                             .source(source)
                             .email(messageRecievedPojo.getEmail())
                             .message(messageRecievedPojo.getMessage())
                             .subject(messageRecievedPojo.getSubject())
                             .responseFromOpenAi(openAiResponse)
+                            .createdAt(System.currentTimeMillis())
                     .build());
         } catch (Exception e) {
             log.error("Error while saving ConversationalHistoryData for request : {}", messageRecievedPojo);
