@@ -24,7 +24,7 @@ public class SerializationUtils {
             return null; // or throw an exception if you prefer
         }
 
-        String[] parts = str.split("\\" + DELIMITER);
+        String[] parts = str.split("\\$%~\\$%");
 
         // Error handling for unexpected input format
         if (parts.length < 3) {

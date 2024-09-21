@@ -3,6 +3,7 @@ package com.worli.chatbot.service.listener;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.worli.chatbot.model.MessageRecievedPojo;
 import com.worli.chatbot.service.ChatAggregatorService;
+import com.worli.chatbot.utils.SerializationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -23,7 +24,8 @@ public class EmailReceiverListener {
     public void emailReceiverListener(ConsumerRecord<String, String> record) {
         log.info("In the function emailReceiverListener, received message : {}", record);
         try {
-            MessageRecievedPojo messageRecievedPojo = objectMapper.readValue(record.value(), MessageRecievedPojo.class);
+            String jsonString = record.value().substring(1, record.value().length() - 1);
+            MessageRecievedPojo messageRecievedPojo = SerializationUtils.deserializeMessageReceivedPojo(jsonString);
             chatAggregatorService.processMessageReceived(messageRecievedPojo);
         } catch (Exception e) {
             log.info("Got exception in emailReceiverListener for record : {}", record);
