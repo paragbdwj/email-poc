@@ -56,7 +56,7 @@ public class GetTokenService {
         String grantType = getTokenRequest.getGrantType();
         formParams.add("grant_type", grantType);
         if(GRANT_TYPE_AUTHORIZATION_CODE.equals(grantType)) {
-            formParams.add(GRANT_TYPE_AUTHORIZATION_CODE, getTokenRequest.getCode());
+            formParams.add("code", getTokenRequest.getCode());
         } else if(GRANT_TYPE_REFRESH_TOKEN.equals(grantType)) {
             formParams.add(GRANT_TYPE_REFRESH_TOKEN, getTokenRequest.getRefreshToken());
         }

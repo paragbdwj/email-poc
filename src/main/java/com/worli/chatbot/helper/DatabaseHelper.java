@@ -1,36 +1,45 @@
 package com.worli.chatbot.helper;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.worli.chatbot.model.GoogleResponseObject;
 import com.worli.chatbot.model.MessageRecievedPojo;
 import com.worli.chatbot.mongo.models.ConversationalHistoryData;
 import com.worli.chatbot.mongo.models.UserGoogleData;
-import com.worli.chatbot.mongo.models.UserGoogleTokenData;
+import com.worli.chatbot.mongo.models.UserTokenData;
+import com.worli.chatbot.mongo.models.UserIdCounter;
 import com.worli.chatbot.mongo.models.UserProfileData;
 import com.worli.chatbot.mongo.repository.ConversationHistoryDataRepository;
 import com.worli.chatbot.mongo.repository.UserGoogleDataRepository;
-import com.worli.chatbot.mongo.repository.UserGoogleTokenDataRepository;
+import com.worli.chatbot.mongo.repository.UserTokenDataRepository;
 import com.worli.chatbot.mongo.repository.UserProfileDataRepository;
+import com.worli.chatbot.request.GetTokenRequest;
 import com.worli.chatbot.response.GetProfileDataResponse;
 import com.worli.chatbot.response.GoogleGetTokenResponse;
+import com.worli.chatbot.service.google.GetTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class DatabaseHelper {
     private final UserGoogleDataRepository userGoogleDataRepository;
-    private final UserGoogleTokenDataRepository userGoogleTokenDataRepository;
+    private final UserTokenDataRepository userTokenDataRepository;
     private final UserProfileDataRepository userProfileDataRepository;
     private final ConversationHistoryDataRepository conversationHistoryDataRepository;
+    private final MongoTemplate mongoTemplate;
+    private final GetTokenService getTokenService;
 
     public void saveOrUpdateGoogleAuthResponseData(GoogleResponseObject googleResponseObject) {
         UserGoogleData userGoogleData = userGoogleDataRepository.findByGoogleId(googleResponseObject.getGoogleId());
@@ -52,24 +61,27 @@ public class DatabaseHelper {
         log.info("updated user_google_data : {} in mongo", userGoogleData);
     }
 
-    public UserGoogleTokenData saveOrUpdateGoogleTokenData(GoogleGetTokenResponse getTokenResponse) {
-        UserGoogleTokenData userGoogleTokenData = userGoogleTokenDataRepository.findByGoogleId(getTokenResponse.getGoogleId());
-        if(Objects.isNull(userGoogleTokenData)) {
-            userGoogleTokenData = userGoogleTokenDataRepository.save(UserGoogleTokenData.builder()
+    public UserTokenData saveOrUpdateGoogleTokenData(GoogleGetTokenResponse getTokenResponse) {
+        UserTokenData userTokenData = userTokenDataRepository.findByGoogleId(getTokenResponse.getGoogleId());
+        if(Objects.isNull(userTokenData)) {
+            Long userId = getAndIncrementUserIdCounterByOne();
+            userTokenData = userTokenDataRepository.save(UserTokenData.builder()
                             .idToken(getTokenResponse.getIdToken())
                             .tokenType(getTokenResponse.getTokenType())
                             .scope(getTokenResponse.getScope())
-                            .expiresIn(getTokenResponse.getExpiresIn())
+                            .expiresIn((System.currentTimeMillis()/1000) + getTokenResponse.getExpiresIn())
                             .refreshToken(getTokenResponse.getRefreshToken())
                             .accessToken(getTokenResponse.getAccessToken())
                             .googleId(getTokenResponse.getGoogleId())
+                            .userId(userId)
+                            .verificationId(UUID.randomUUID().toString())
                     .build());
         } else {
-            Optional.ofNullable(getTokenResponse.getAccessToken()).ifPresent(userGoogleTokenData::setAccessToken);
-            Optional.ofNullable(getTokenResponse.getScope()).ifPresent(userGoogleTokenData::setScope);
-            userGoogleTokenData = userGoogleTokenDataRepository.save(userGoogleTokenData);
+            Optional.ofNullable(getTokenResponse.getAccessToken()).ifPresent(userTokenData::setAccessToken);
+            Optional.ofNullable(getTokenResponse.getScope()).ifPresent(userTokenData::setScope);
+            userTokenData = userTokenDataRepository.save(userTokenData);
         }
-        return userGoogleTokenData;
+        return userTokenData;
     }
 
     public UserProfileData saveOrUpdateUserProfileData(GetProfileDataResponse getProfileDataResponse){
@@ -115,4 +127,39 @@ public class DatabaseHelper {
         }
     }
 
+    public Long getAndIncrementUserIdCounterByOne() {
+        Query query = new Query();
+        // Define the update operation to increment the counter by 1
+        Update update = new Update().inc("counter", 1);
+        // Execute the findAndModify operation
+        UserIdCounter updatedCounter = mongoTemplate.findAndModify(
+                query,
+                update,
+                FindAndModifyOptions.options().returnNew(true), // Return the updated document
+                UserIdCounter.class
+        );
+        // If no counter is found, create a new document with counter starting from 1
+        if (updatedCounter == null) {
+            UserIdCounter newCounter = UserIdCounter.builder().counter(1L).build();
+            mongoTemplate.save(newCounter);
+            return 1L;
+        }
+        // Return the new incremented value
+        return updatedCounter.getCounter();
+    }
+
+    public UserTokenData findByVerificationId(String verificationId) {
+        return userTokenDataRepository.findByVerificationId(verificationId);
+    }
+
+    public UserTokenData checkAndUpdateAccessTokenIfExpired(UserTokenData userTokenData) throws JsonProcessingException {
+        if((System.currentTimeMillis()/1000) + 100 > userTokenData.getExpiresIn()) {
+            GoogleGetTokenResponse googleGetTokenResponse = getTokenService.getGoogleTokenResponse(GetTokenRequest.builder().refreshToken(userTokenData.getRefreshToken())
+                            .grantType("refresh_token")
+                    .build());
+            userTokenData.setAccessToken(googleGetTokenResponse.getAccessToken());
+            return userTokenDataRepository.save(userTokenData);
+        }
+        return userTokenData;
+    }
 }

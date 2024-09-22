@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.worli.chatbot.constants.ApplicationProperties;
 import com.worli.chatbot.helper.DatabaseHelper;
 import com.worli.chatbot.model.GoogleResponseObject;
-import com.worli.chatbot.mongo.models.UserGoogleTokenData;
+import com.worli.chatbot.mongo.models.UserTokenData;
 import com.worli.chatbot.mongo.models.UserProfileData;
 import com.worli.chatbot.request.GetProfileDataRequest;
 import com.worli.chatbot.request.GetTokenRequest;
@@ -40,20 +40,20 @@ public class GoogleService {
     }
 
     public GoogleOauthResponse handleGoogleOauthCallback(String code) throws JsonProcessingException {
-        GoogleGetTokenResponse googleGetTokenResponse = getTokenService.getGoogleTokenResponse(GetTokenRequest.builder().code(code).build());
-        UserGoogleTokenData userGoogleTokenData = databaseHelper.saveOrUpdateGoogleTokenData(googleGetTokenResponse);
-        UserProfileData userProfileData = saveUserProfileData(userGoogleTokenData);
+        GoogleGetTokenResponse googleGetTokenResponse = getTokenService.getGoogleTokenResponse(GetTokenRequest.builder().code(code).grantType("authorization_code").build());
+        UserTokenData userTokenData = databaseHelper.saveOrUpdateGoogleTokenData(googleGetTokenResponse);
+        UserProfileData userProfileData = saveUserProfileData(userTokenData);
         return GoogleOauthResponse.builder()
-                .accessToken(userGoogleTokenData.getAccessToken())
-                .refreshToken(userGoogleTokenData.getRefreshToken())
+                .accessToken(userTokenData.getAccessToken())
+                .refreshToken(userTokenData.getRefreshToken())
                 .userProfileData(userProfileData)
                 .build();
     }
 
     // TODO : scope for parallelization ???
-    private UserProfileData saveUserProfileData(UserGoogleTokenData userGoogleTokenData) throws JsonProcessingException {
+    private UserProfileData saveUserProfileData(UserTokenData userTokenData) throws JsonProcessingException {
         GetProfileDataResponse getProfileDataResponse = getProfileDataService.getProfileData(GetProfileDataRequest.builder()
-                .accessToken(userGoogleTokenData.getAccessToken())
+                .accessToken(userTokenData.getAccessToken())
                 .build());
         return databaseHelper.saveOrUpdateUserProfileData(getProfileDataResponse);
     }
