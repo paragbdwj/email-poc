@@ -13,6 +13,7 @@ import com.worli.chatbot.response.OpenAIChatCompletionResponse;
 import com.worli.chatbot.service.email.EmailSenderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.springframework.stereotype.Service;
 
@@ -33,7 +34,6 @@ public class ChatAggregatorService {
     private final ApplicationProperties applicationProperties;
     private final ObjectMapper objectMapper;
     private final EmailSenderService emailSenderService;
-    ExecutorService executorService = Executors.newFixedThreadPool(20);
     public void processMessageReceived(MessageRecievedPojo messageRecievedPojo) throws JsonProcessingException {
         List<ConversationalHistoryData> conversationalHistoryData = databaseHelper.getTopConversationalDatas(messageRecievedPojo.getEmail(), 20);
         OpenAIChatCompletionResponse openAIChatCompletionResponse = conversationalModelService.callOpenAiModel(createOpenAIRequest(messageRecievedPojo, conversationalHistoryData));
@@ -44,11 +44,15 @@ public class ChatAggregatorService {
     }
 
     private void handleBusinessUseCaseBasisIntent(ConvModelPromptResponse convModelPromptResponse, MessageRecievedPojo messageRecievedPojo) {
-        if(convModelPromptResponse.getIntent() == 4) {
+        if(convModelPromptResponse.getIntent() == 4) {         // bogus intent
             emailSenderService.sendEmail(messageRecievedPojo.getEmail(), "Please include conversation related to emails only :)", "We only cater queries related to meetings. Hope you understand :)", false);
-        } else if(convModelPromptResponse.getIntent() == 1) {
+        } else if(convModelPromptResponse.getIntent() == 1) {  // schedule_meeting intent
+            if(StringUtils.isBlank(convModelPromptResponse.getToEmail())) {
+                emailSenderService.sendEmail(messageRecievedPojo.getEmail(), "Receiver email missing", "Please provide us email of the receiver so that we can assist you better :)", false );
+                return;
+            }
             emailSenderService.sendEmail(convModelPromptResponse.getToEmail(), "You have a meet bud", "A meeting is scheduled with " + convModelPromptResponse.getToEmail(), false );
-            emailSenderService.sendEmail(messageRecievedPojo.getEmail(), "Your meeting is sucssessful", "A meeting is scheduled with " + convModelPromptResponse.getToEmail(), false );
+            emailSenderService.sendEmail(messageRecievedPojo.getEmail(), "Your meeting is successful", "A meeting is scheduled with " + convModelPromptResponse.getToEmail(), false );
         }
     }
 
@@ -89,6 +93,4 @@ public class ChatAggregatorService {
     private void saveMessageInConversationalHistoryData(MessageRecievedPojo messageRecievedPojo, String openAiResponse) {
         databaseHelper.saveConversationalHistoryData(messageRecievedPojo, "email", openAiResponse);
     }
-
-
 }

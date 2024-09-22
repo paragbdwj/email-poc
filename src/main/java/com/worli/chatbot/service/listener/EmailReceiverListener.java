@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -21,7 +22,7 @@ public class EmailReceiverListener {
             groupId = "my-group",
             autoStartup = "#{T(java.lang.Boolean).parseBoolean('${kafka.listener.enabled.email-receiver}')}"  // Uses the property to enable/disable
     )
-    public void emailReceiverListener(ConsumerRecord<String, String> record) {
+    public void emailReceiverListener(ConsumerRecord<String, String> record, Acknowledgment acknowledgment) {
         log.info("In the function emailReceiverListener, received message : {}", record);
         try {
             String jsonString = record.value().substring(1, record.value().length() - 1);
@@ -29,6 +30,8 @@ public class EmailReceiverListener {
             chatAggregatorService.processMessageReceived(messageRecievedPojo);
         } catch (Exception e) {
             log.info("Got exception in emailReceiverListener for record : {}", record);
+        } finally {
+            acknowledgment.acknowledge();
         }
     }
 }
