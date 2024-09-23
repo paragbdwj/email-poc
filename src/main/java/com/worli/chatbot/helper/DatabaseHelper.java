@@ -1,6 +1,7 @@
 package com.worli.chatbot.helper;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.worli.chatbot.model.GoogleResponseObject;
 import com.worli.chatbot.model.MessageRecievedPojo;
 import com.worli.chatbot.mongo.models.ConversationalHistoryData;
@@ -13,17 +14,20 @@ import com.worli.chatbot.mongo.repository.UserGoogleDataRepository;
 import com.worli.chatbot.mongo.repository.UserTokenDataRepository;
 import com.worli.chatbot.mongo.repository.UserProfileDataRepository;
 import com.worli.chatbot.request.GetTokenRequest;
+import com.worli.chatbot.response.ConvModelPromptResponse;
 import com.worli.chatbot.response.GetProfileDataResponse;
 import com.worli.chatbot.response.GoogleGetTokenResponse;
 import com.worli.chatbot.service.google.GetTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.Objects;
@@ -40,6 +44,7 @@ public class DatabaseHelper {
     private final ConversationHistoryDataRepository conversationHistoryDataRepository;
     private final MongoTemplate mongoTemplate;
     private final GetTokenService getTokenService;
+    private final ObjectMapper objectMapper;
 
     public void saveOrUpdateGoogleAuthResponseData(GoogleResponseObject googleResponseObject) {
         UserGoogleData userGoogleData = userGoogleDataRepository.findByGoogleId(googleResponseObject.getGoogleId());
@@ -111,20 +116,30 @@ public class DatabaseHelper {
         return conversationHistoryDataRepository.findTopConversationalHistoryDataByEmailOrderByCreatedAtDesc(email, PageRequest.of(0, 20));
     }
 
-    public ConversationalHistoryData saveConversationalHistoryData(MessageRecievedPojo messageRecievedPojo, String source, String openAiResponse) {
+    public ConversationalHistoryData saveConversationalHistoryData(MessageRecievedPojo messageRecievedPojo, String source, ConvModelPromptResponse openAiResponse) {
         try {
             return conversationHistoryDataRepository.save(ConversationalHistoryData.builder()
                             .source(source)
                             .email(messageRecievedPojo.getEmail())
                             .message(messageRecievedPojo.getMessage())
                             .subject(messageRecievedPojo.getSubject())
-                            .responseFromOpenAi(openAiResponse)
+                            .responseFromOpenAi(objectMapper.writeValueAsString(openAiResponse))
+                            .isIntentFulfilled(isIntentFulfilled(openAiResponse))
                             .createdAt(System.currentTimeMillis())
                     .build());
         } catch (Exception e) {
             log.error("Error while saving ConversationalHistoryData for request : {}", messageRecievedPojo);
             return null;
         }
+    }
+
+    private boolean isIntentFulfilled(ConvModelPromptResponse openAiResponse) {
+        if(openAiResponse.getIntent() == 4) {
+            return false;
+        } else if(openAiResponse.getIntent() == 1) {
+            return !CollectionUtils.isEmpty(openAiResponse.getParticipants());
+        }
+        return false;
     }
 
     public Long getAndIncrementUserIdCounterByOne() {
@@ -161,5 +176,9 @@ public class DatabaseHelper {
             return userTokenDataRepository.save(userTokenData);
         }
         return userTokenData;
+    }
+
+    public UserProfileData findByEmail(String email) {
+        return userProfileDataRepository.findByEmail(email);
     }
 }

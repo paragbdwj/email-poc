@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface UserProfileDataRepository extends MongoRepository<UserProfileData, Integer> {
     UserProfileData findByGoogleId(String googleId);
+    UserProfileData findByEmail(String email);
 }
