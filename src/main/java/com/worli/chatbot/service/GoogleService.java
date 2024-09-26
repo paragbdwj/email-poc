@@ -44,8 +44,7 @@ public class GoogleService {
         UserTokenData userTokenData = databaseHelper.saveOrUpdateGoogleTokenData(googleGetTokenResponse);
         UserProfileData userProfileData = saveUserProfileData(userTokenData);
         return GoogleOauthResponse.builder()
-                .accessToken(userTokenData.getAccessToken())
-                .refreshToken(userTokenData.getRefreshToken())
+                .verificationId(userTokenData.getVerificationId())
                 .userProfileData(userProfileData)
                 .build();
     }
@@ -55,6 +54,6 @@ public class GoogleService {
         GetProfileDataResponse getProfileDataResponse = getProfileDataService.getProfileData(GetProfileDataRequest.builder()
                 .accessToken(userTokenData.getAccessToken())
                 .build());
-        return databaseHelper.saveOrUpdateUserProfileData(getProfileDataResponse);
+        return databaseHelper.saveOrUpdateUserProfileData(getProfileDataResponse, userTokenData.getUserId());
     }
 }

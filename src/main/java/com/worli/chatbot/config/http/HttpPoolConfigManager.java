@@ -13,8 +13,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
+import static com.worli.chatbot.constants.BeanNames.Rest.GOOGLE_CALENDAR_REST_TEMPLATE;
 import static com.worli.chatbot.constants.BeanNames.Rest.GOOGLE_GET_PROFILE_DATA_REST_TEMPLATE;
 import static com.worli.chatbot.constants.BeanNames.Rest.GOOGLE_GET_TOKEN_REST_TEMPLATE;
+import static com.worli.chatbot.constants.BeanNames.Rest.GOOGLE_PEOPLE_REST_TEMPLATE;
 import static com.worli.chatbot.constants.BeanNames.Rest.LLM_CONVERSATIONAL_REST_TEMPLATE;
 
 @Configuration
@@ -40,6 +42,20 @@ public class HttpPoolConfigManager {
     public RestTemplate googleGetProfileDataRestTemplate(HttpPoolProperties httpPoolProperties) {
         HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
         requestFactory.setHttpClient(getHttpClientFactory(httpPoolProperties.getGoogleGetProfileDataPoolConfig()));
+        return new RestTemplate(requestFactory);
+    }
+
+    @Bean(GOOGLE_CALENDAR_REST_TEMPLATE)
+    public RestTemplate googleCalendarRestTemplate(HttpPoolProperties httpPoolProperties) {
+        HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
+        requestFactory.setHttpClient(getHttpClientFactory(httpPoolProperties.getGoogleCalendarPoolConfig()));
+        return new RestTemplate(requestFactory);
+    }
+
+    @Bean(GOOGLE_PEOPLE_REST_TEMPLATE)
+    public RestTemplate googlePeopleRestTemplate(HttpPoolProperties httpPoolProperties) {
+        HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
+        requestFactory.setHttpClient(getHttpClientFactory(httpPoolProperties.getGooglePeoplePoolConfig()));
         return new RestTemplate(requestFactory);
     }
 

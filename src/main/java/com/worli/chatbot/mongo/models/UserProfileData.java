@@ -15,6 +15,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class UserProfileData {
     @Id
     private String id;
+    private Long userId;
     private String googleId;
     private String email;
     private boolean verifiedEmail;

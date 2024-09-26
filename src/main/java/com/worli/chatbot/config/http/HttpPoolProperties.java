@@ -13,4 +13,7 @@ public class HttpPoolProperties {
     private HttpPoolConfig llmConversationalPoolConfig;
     private HttpPoolConfig googleGetTokenPoolConfig;
     private HttpPoolConfig googleGetProfileDataPoolConfig;
+    private HttpPoolConfig googleCalendarPoolConfig;
+    private HttpPoolConfig googlePeoplePoolConfig;
+    private HttpPoolConfig priorityModelPoolConfig;
 }

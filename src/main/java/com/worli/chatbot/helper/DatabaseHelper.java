@@ -4,11 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.worli.chatbot.model.GoogleResponseObject;
 import com.worli.chatbot.model.MessageRecievedPojo;
+import com.worli.chatbot.mongo.models.CalendarData;
 import com.worli.chatbot.mongo.models.ConversationalHistoryData;
 import com.worli.chatbot.mongo.models.UserGoogleData;
 import com.worli.chatbot.mongo.models.UserTokenData;
 import com.worli.chatbot.mongo.models.UserIdCounter;
 import com.worli.chatbot.mongo.models.UserProfileData;
+import com.worli.chatbot.mongo.repository.CalendarDataRepository;
 import com.worli.chatbot.mongo.repository.ConversationHistoryDataRepository;
 import com.worli.chatbot.mongo.repository.UserGoogleDataRepository;
 import com.worli.chatbot.mongo.repository.UserTokenDataRepository;
@@ -20,7 +22,6 @@ import com.worli.chatbot.response.GoogleGetTokenResponse;
 import com.worli.chatbot.service.google.GetTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -45,6 +46,7 @@ public class DatabaseHelper {
     private final MongoTemplate mongoTemplate;
     private final GetTokenService getTokenService;
     private final ObjectMapper objectMapper;
+    private final CalendarDataRepository calendarDataRepository;
 
     public void saveOrUpdateGoogleAuthResponseData(GoogleResponseObject googleResponseObject) {
         UserGoogleData userGoogleData = userGoogleDataRepository.findByGoogleId(googleResponseObject.getGoogleId());
@@ -84,30 +86,34 @@ public class DatabaseHelper {
         } else {
             Optional.ofNullable(getTokenResponse.getAccessToken()).ifPresent(userTokenData::setAccessToken);
             Optional.ofNullable(getTokenResponse.getScope()).ifPresent(userTokenData::setScope);
+            userTokenData.setExpiresIn(getTokenResponse.getExpiresIn() + (System.currentTimeMillis()/1000));
             userTokenData = userTokenDataRepository.save(userTokenData);
         }
         return userTokenData;
     }
 
-    public UserProfileData saveOrUpdateUserProfileData(GetProfileDataResponse getProfileDataResponse){
+    public UserProfileData saveOrUpdateUserProfileData(GetProfileDataResponse getProfileDataResponse, Long userId){
         UserProfileData userProfileData = userProfileDataRepository.findByGoogleId(getProfileDataResponse.getGoogleId());
         if(Objects.isNull(userProfileData)) {
             userProfileData = UserProfileData.builder()
-                    .googleId(userProfileData.getGoogleId())
-                    .email(userProfileData.getEmail())
-                    .familyName(userProfileData.getFamilyName())
-                    .picture(userProfileData.getPicture())
-                    .verifiedEmail(userProfileData.isVerifiedEmail())
-                    .givenName(userProfileData.getGivenName())
-                    .name(userProfileData.getName())
+                    .googleId(getProfileDataResponse.getGoogleId())
+                    .email(getProfileDataResponse.getEmail())
+                    .familyName(getProfileDataResponse.getFamilyName())
+                    .picture(getProfileDataResponse.getPicture())
+                    .verifiedEmail(getProfileDataResponse.isVerifiedEmail())
+                    .givenName(getProfileDataResponse.getGivenName())
+                    .name(getProfileDataResponse.getName())
+                    .userId(userId)
                     .build();
         } else {
-            userProfileData.setEmail(userProfileData.getEmail());
-            userProfileData.setName(userProfileData.getName());
-            userProfileData.setPicture(userProfileData.getPicture());
-            userProfileData.setVerifiedEmail(userProfileData.isVerifiedEmail());
-            userProfileData.setGivenName(userProfileData.getGivenName());
-            userProfileData.setFamilyName(userProfileData.getFamilyName());
+            userProfileData.setEmail(getProfileDataResponse.getEmail());
+            userProfileData.setName(getProfileDataResponse.getName());
+            userProfileData.setPicture(getProfileDataResponse.getPicture());
+            userProfileData.setVerifiedEmail(getProfileDataResponse.isVerifiedEmail());
+            userProfileData.setGivenName(getProfileDataResponse.getGivenName());
+            userProfileData.setFamilyName(getProfileDataResponse.getFamilyName());
+            userProfileData.setGoogleId(getProfileDataResponse.getGoogleId());
+            userProfileData.setUserId(userId);
         }
         return userProfileDataRepository.save(userProfileData);
     }
@@ -180,5 +186,9 @@ public class DatabaseHelper {
 
     public UserProfileData findByEmail(String email) {
         return userProfileDataRepository.findByEmail(email);
+    }
+    public List<CalendarData> getCalendarDataAfterNSeconds(Long userId, Long timeInSeconds) {
+        Long currEpochSeconds = System.currentTimeMillis()/1000;
+        return calendarDataRepository.findByUserIdAndStartEpochTimestampBetween(userId, currEpochSeconds, currEpochSeconds + timeInSeconds);
     }
 }

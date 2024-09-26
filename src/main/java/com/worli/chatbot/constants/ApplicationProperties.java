@@ -47,4 +47,13 @@ public class ApplicationProperties {
     @Value("${kafka.topic.email-receiver}")
     private String topicEmailReceiver;
 
+    // urls realted data
+    @Value("${urls.google-calendar-events-url}")
+    private String googleCalendarEventsUrl;
+
+    @Value("${urls.google-people-url}")
+    private String googlePeopleUrl;
+
+    @Value("${urls.google-calendar-update-response}")
+    private String googleCalendarUpdateResponse;
 }
