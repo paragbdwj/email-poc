@@ -15,4 +15,9 @@ public class MessageRecievedPojo {
     private String email;
     private String userName;
     private String subject;
+
+    //Meta-data
+    private String googleAccessToken;
+    private boolean isSenderPartOfWorli;
+    private boolean isReceiverPartOfWorli; // Soon, we'll have to handle one to many usecase
 }

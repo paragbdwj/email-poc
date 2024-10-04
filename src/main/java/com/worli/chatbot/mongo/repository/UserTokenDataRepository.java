@@ -8,5 +8,5 @@ import org.springframework.stereotype.Repository;
 public interface UserTokenDataRepository extends MongoRepository<UserTokenData, Integer> {
     UserTokenData findByGoogleId(String googleId);
     UserTokenData findByVerificationId(String verificationId);
-
+    UserTokenData findByUserId(Long userId);
 }

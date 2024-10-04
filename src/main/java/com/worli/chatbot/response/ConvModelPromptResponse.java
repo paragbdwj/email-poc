@@ -20,20 +20,9 @@ import java.util.List;
 @JsonInclude(Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ConvModelPromptResponse {
-    private String fromEmail;
-    private String toEmail;
-    private String meetingTime;
-    private String cancelMeetingDate;
-    private String newMeetingDate;
-    private String agenda;
-    private String suggestedSlots;
-    private String deadlineDate;
-    private String fromName;
-    private String toName;
     private int intent;
-    private String fromPhone;
-    private String subject;
-    private String body;
-    private boolean isFollowUp;
+    private String agenda;
     private List<String> participants;
+    private Integer durationOfTheMeeting;
+    private String dateAndTimeOfTheMeeting;
 }

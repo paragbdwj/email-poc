@@ -1,4 +1,4 @@
-package com.worli.chatbot.request;
+package com.worli.chatbot.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -10,17 +10,27 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonNaming(SnakeCaseStrategy.class)
 @JsonInclude(Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class GoogleCalendarRequest {
-    private String accessToken;
-    private Integer maxResults;
-    private String orderBy;
-    private Boolean singleEvents;
-    private String timeMin;
-    private String timeMax;
+public class PriorityModelResponse {
+    private List<PriorityModelResponsePojo> priorityModelResponseList;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonNaming(SnakeCaseStrategy.class)
+    @JsonInclude(Include.NON_NULL)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class PriorityModelResponsePojo {
+        private String eventId;
+        private Double priorityScore;
+    }
 }

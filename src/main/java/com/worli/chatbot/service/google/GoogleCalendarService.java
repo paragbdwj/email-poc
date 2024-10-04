@@ -39,7 +39,9 @@ public class GoogleCalendarService {
                 applicationProperties.getGoogleCalendarEventsUrl(),
                 request.getMaxResults(),
                 request.getOrderBy(),
-                request.getSingleEvents()
+                request.getSingleEvents(),
+                request.getTimeMin(),
+                request.getTimeMax()
         );
         GoogleCalendarResponse googleCalendarResponse = null;
         try {

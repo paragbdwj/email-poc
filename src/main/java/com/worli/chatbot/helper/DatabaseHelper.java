@@ -173,6 +173,10 @@ public class DatabaseHelper {
         return userTokenDataRepository.findByVerificationId(verificationId);
     }
 
+    public UserTokenData findUserTokenByUserId(Long userId) {
+        return userTokenDataRepository.findByUserId(userId);
+    }
+
     public UserTokenData checkAndUpdateAccessTokenIfExpired(UserTokenData userTokenData) throws JsonProcessingException {
         if((System.currentTimeMillis()/1000) + 100 > userTokenData.getExpiresIn()) {
             GoogleGetTokenResponse googleGetTokenResponse = getTokenService.getGoogleTokenResponse(GetTokenRequest.builder().refreshToken(userTokenData.getRefreshToken())

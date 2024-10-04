@@ -33,6 +33,8 @@ public class GoogleCalendarResponse {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Event {
         private String id;
+        //TODO: remove this priority score
+        private double priorityScore;
         private String status;
         private String summary;
         private String location;

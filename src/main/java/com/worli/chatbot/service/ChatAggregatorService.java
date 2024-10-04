@@ -7,6 +7,7 @@ import com.worli.chatbot.helper.DatabaseHelper;
 import com.worli.chatbot.model.MessageRecievedPojo;
 import com.worli.chatbot.mongo.models.ConversationalHistoryData;
 import com.worli.chatbot.mongo.models.UserProfileData;
+import com.worli.chatbot.mongo.models.UserTokenData;
 import com.worli.chatbot.request.OpenAIChatCompletionRequest;
 import com.worli.chatbot.request.OpenAIChatCompletionRequest.Message;
 import com.worli.chatbot.response.ConvModelPromptResponse;
@@ -36,21 +37,38 @@ public class ChatAggregatorService {
     private final ObjectMapper objectMapper;
     private final EmailSenderService emailSenderService;
     private final MongoHelper mongoHelper;
+    private final BusinessUseCaseHandlingService businessUseCaseHandlingService;
     public void processMessageReceived(MessageRecievedPojo messageRecievedPojo) throws JsonProcessingException {
-        //check if user is part of worli
-        messageRecievedPojo.setUserName(Objects.requireNonNull(extractEmailAndUsername(messageRecievedPojo.getEmail()))[0]);
-        messageRecievedPojo.setEmail(Objects.requireNonNull(extractEmailAndUsername(messageRecievedPojo.getEmail()))[1]);
-        UserProfileData userProfileData = databaseHelper.findByEmail(messageRecievedPojo.getEmail());
-        if(Objects.isNull(userProfileData)) {
-            emailSenderService.sendEmail(messageRecievedPojo.getEmail(), "Not Part of Worli", NOT_PART_OF_WORLI, false);
-            return;
-        }
+        extractUserNameAndEmailAndSet(messageRecievedPojo);
+        UserProfileData userProfileData = checkAndSetIfUserIsPartOfWorli(messageRecievedPojo);
+        setAccessTokenInMessageReceivedPojo(messageRecievedPojo, userProfileData);
         List<ConversationalHistoryData> conversationalHistoryData = mongoHelper.getDocumentsUntilIntentFulfilled(messageRecievedPojo.getEmail(), 20);
         OpenAIChatCompletionResponse openAIChatCompletionResponse = conversationalModelService.callOpenAiModel(createOpenAIRequest(messageRecievedPojo, conversationalHistoryData));
         String message = openAIChatCompletionResponse.getChoices().get(0).getMessage().getContent();
         ConvModelPromptResponse convModelPromptResponse = objectMapper.readValue(message, ConvModelPromptResponse.class);
-        handleBusinessUseCaseBasisIntent(convModelPromptResponse, messageRecievedPojo);
+        businessUseCaseHandlingService.handleBusinessUseCaseBasisIntent(convModelPromptResponse, messageRecievedPojo);
         CompletableFuture.runAsync(() -> saveMessageInConversationalHistoryData(messageRecievedPojo, convModelPromptResponse));
+    }
+
+    private UserProfileData checkAndSetIfUserIsPartOfWorli(MessageRecievedPojo messageRecievedPojo) {
+        UserProfileData userProfileData = databaseHelper.findByEmail(messageRecievedPojo.getEmail());
+        if(Objects.isNull(userProfileData)) {
+            messageRecievedPojo.setSenderPartOfWorli(false);
+        } else {
+            messageRecievedPojo.setSenderPartOfWorli(true);
+        }
+        return userProfileData;
+    }
+
+    private void extractUserNameAndEmailAndSet(MessageRecievedPojo messageRecievedPojo) {
+        messageRecievedPojo.setUserName(Objects.requireNonNull(extractEmailAndUsername(messageRecievedPojo.getEmail()))[0]);
+        messageRecievedPojo.setEmail(Objects.requireNonNull(extractEmailAndUsername(messageRecievedPojo.getEmail()))[1]);
+    }
+
+    private void setAccessTokenInMessageReceivedPojo(MessageRecievedPojo messageRecievedPojo, UserProfileData userProfileData) throws JsonProcessingException {
+        UserTokenData userTokenData = databaseHelper.findUserTokenByUserId(userProfileData.getUserId());
+        userTokenData = databaseHelper.checkAndUpdateAccessTokenIfExpired(userTokenData);
+        messageRecievedPojo.setGoogleAccessToken(userTokenData.getAccessToken());
     }
 
     public static String[] extractEmailAndUsername(String input) {
@@ -64,21 +82,6 @@ public class ChatAggregatorService {
             return new String[]{username, email};
         }
         return null; // Return null if no match found
-    }
-
-    private void handleBusinessUseCaseBasisIntent(ConvModelPromptResponse convModelPromptResponse, MessageRecievedPojo messageRecievedPojo) {
-        if(convModelPromptResponse.getIntent() == 4) {         // irrelevant_message intent
-            emailSenderService.sendEmail(messageRecievedPojo.getEmail(), "Please include conversation related to emails only :)", "We only cater queries related to meetings. Hope you understand :)", false);
-        } else if(convModelPromptResponse.getIntent() == 1) {  // schedule_meeting intent
-            if(CollectionUtils.isEmpty(convModelPromptResponse.getParticipants())) {
-                emailSenderService.sendEmail(messageRecievedPojo.getEmail(), "Receiver email missing", "Please provide us email of the receiver so that we can assist you better :)", false );
-                return;
-            }
-            for(String participantEmail : convModelPromptResponse.getParticipants()) {
-                emailSenderService.sendEmail(participantEmail, "You have a meet bud", "A meeting is scheduled with " + convModelPromptResponse.getToEmail(), false);
-            }
-            emailSenderService.sendEmail(messageRecievedPojo.getEmail(), "Your meeting is successful", "A meeting is scheduled with " + convModelPromptResponse.getToEmail(), false );
-        }
     }
 
     private OpenAIChatCompletionRequest createOpenAIRequest(MessageRecievedPojo messageRecievedPojo, List<ConversationalHistoryData> conversationalHistoryData) {
@@ -99,21 +102,25 @@ public class ChatAggregatorService {
     }
 
     private String makeChatHistory(List<ConversationalHistoryData> conversationalHistoryData, MessageRecievedPojo messageRecievedPojo) {
-        StringBuilder chatHistory = new StringBuilder();
+        String chatHistory = "";
         Collections.reverse(conversationalHistoryData);
         for(int index = 0; index < conversationalHistoryData.size(); index++) {
-            chatHistory.append("- email_body : ")
-                    .append(conversationalHistoryData.get(index).getMessage())
-                    .append(", subject : ")
-                    .append(conversationalHistoryData.get(index).getSubject())
-                    .append("\n");
+            chatHistory = chatHistory + "- email_body : "
+                    + normalizeNewlines(conversationalHistoryData.get(index).getMessage())
+                    + ", subject : "
+                    + normalizeNewlines(conversationalHistoryData.get(index).getSubject())
+                    + "\n";
         }
-        chatHistory.append("- email_body : ")
-                .append(messageRecievedPojo.getMessage())
-                .append(", subject : ")
-                .append(messageRecievedPojo.getSubject())
-                .append("\n");
-        return chatHistory.toString();
+        chatHistory = chatHistory + "- email_body : "
+                + normalizeNewlines(messageRecievedPojo.getMessage())
+                + ", subject : "
+                + normalizeNewlines(messageRecievedPojo.getSubject())
+                + "\n";
+        return chatHistory;
+    }
+
+    private String normalizeNewlines(String input) {
+        return input != null ? input.replace("\r\n", "\n").trim() : "";
     }
 
     private void saveMessageInConversationalHistoryData(MessageRecievedPojo messageRecievedPojo, ConvModelPromptResponse openAiResponse) {
